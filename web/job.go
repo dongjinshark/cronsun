@@ -184,6 +184,76 @@ func (j *Job) UpdateJob(ctx *Context) {
 	outJSONWithCode(ctx.W, successCode, nil)
 }
 
+// CreateJob 通过api 创建任务
+func (j *Job) CreateJob(ctx *Context) {
+	var job = &struct {
+		*cronsun.Job
+		Timer string `json:"timer"`
+		Nodes string `json:"nodes"`
+	}{}
+
+	decoder := json.NewDecoder(ctx.R.Body)
+	err := decoder.Decode(&job)
+	if err != nil {
+		outJSONWithCode(ctx.W, http.StatusBadRequest, err.Error())
+		return
+	}
+	ctx.R.Body.Close()
+
+	if err = job.Check(); err != nil {
+		outJSONWithCode(ctx.W, http.StatusBadRequest, err.Error())
+		return
+	}
+	job.ID = cronsun.NextID()
+
+	if len(job.Nodes) == 0 {
+		outJSONWithCode(ctx.W, http.StatusBadRequest, err.Error())
+		return
+	}
+	nodes, err := cronsun.GetNodes()
+	if err != nil {
+		outJSONWithCode(ctx.W, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	jobNodeList := strings.Split(job.Nodes, ",")
+
+	nodeIds := make([]string, 0, len(jobNodeList))
+
+	for _, node := range jobNodeList {
+		for _, n := range nodes {
+			if node == n.IP || node == n.Hostname {
+				nodeIds = append(nodeIds, n.ID)
+			}
+		}
+	}
+
+	job.Rules = make([]*cronsun.JobRule, 1)
+	jobRule := &cronsun.JobRule{
+		ID:             cronsun.NextID(),
+		Timer:          job.Timer,
+		GroupIDs:       nil,
+		NodeIDs:        nodeIds,
+		ExcludeNodeIDs: nil,
+		Schedule:       nil,
+	}
+	job.Rules = append(job.Rules, jobRule)
+
+	b, err := json.Marshal(job)
+	if err != nil {
+		outJSONWithCode(ctx.W, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	_, err = cronsun.DefalutClient.Put(job.Key(), string(b))
+	if err != nil {
+		outJSONWithCode(ctx.W, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	outJSONWithCode(ctx.W, http.StatusCreated, nil)
+}
+
 func (j *Job) GetGroups(ctx *Context) {
 	resp, err := cronsun.DefalutClient.Get(conf.Config.Cmd, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	if err != nil {

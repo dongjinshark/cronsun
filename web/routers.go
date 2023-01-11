@@ -53,6 +53,8 @@ func initRouters() (s *http.Server, err error) {
 	// create/update a job
 	h = NewAuthHandler(jobHandler.UpdateJob, cronsun.Developer)
 	subrouter.Handle("/job", h).Methods("PUT")
+	h = NewAuthHandler(jobHandler.CreateJob, cronsun.Developer)
+	subrouter.Handle("/job-create", h).Methods("PUT")
 	// pause/start
 	h = NewAuthHandler(jobHandler.ChangeJobStatus, cronsun.Developer)
 	subrouter.Handle("/job/{group}-{id}", h).Methods("POST")

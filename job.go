@@ -543,10 +543,12 @@ func (j *Job) Check() error {
 
 	j.User = strings.TrimSpace(j.User)
 
-	for i := range j.Rules {
-		id := strings.TrimSpace(j.Rules[i].ID)
-		if id == "" || strings.HasPrefix(id, "NEW") {
-			j.Rules[i].ID = NextID()
+	if j.Rules != nil {
+		for i := range j.Rules {
+			id := strings.TrimSpace(j.Rules[i].ID)
+			if id == "" || strings.HasPrefix(id, "NEW") {
+				j.Rules[i].ID = NextID()
+			}
 		}
 	}
 
