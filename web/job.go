@@ -228,7 +228,7 @@ func (j *Job) CreateJob(ctx *Context) {
 		}
 	}
 
-	job.Rules = make([]*cronsun.JobRule, 1)
+	job.Rules = make([]*cronsun.JobRule, 0, 1)
 	jobRule := &cronsun.JobRule{
 		ID:             cronsun.NextID(),
 		Timer:          job.Timer,
